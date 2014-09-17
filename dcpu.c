@@ -155,17 +155,17 @@ void write_operand(char *token, bool is_a) {
       write_word(registers[reg_val] + lit); 
       return;
     }
-    write_word(memory[registers[reg_val]]);
+    //write_word(registers[reg_val]);
     return;
   }
 
   // SP / [SP + lit]
   if(parts[0] == "SP") {
     if (parts[1] && is_literal(parts[1], &lit)) {
-      write_word(memory[spointer + lit]);
+      write_word(spointer + lit);
       return;
     }
-    write_word(memory[spointer]);
+    //write_word(memory[spointer]);
     return;
   }
 
