@@ -93,7 +93,7 @@ u16 get_instr_value(char *token, bool is_a) {
   u16 lit;
   if (is_literal(token, &lit)) { 
     if (lit >= -1 && lit <= 30 && is_a)
-      return lit;
+      return 0x21 + lit;
     return 0x1f;
   }
 
@@ -127,6 +127,9 @@ void write_operand(char *token, bool is_a) {
   if (reg_val > - 1) {
     return;
   }
+
+  if (!strcmp(token, "POP") || !strcmp(token, "PUSH"))
+    return;
 
   u16 lit;
 
