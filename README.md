@@ -5,6 +5,8 @@ I make a lot of assumptions since I'm writing in C and don't wanna spend forever
 
 Usage (once emulator is in working state):
 
-  make
-  ./asm < foo.dasm > foo.bin
-  ./emu < foo.bin
+    make
+  
+    ./asm < foo.dasm > foo.bin
+  
+    ./emu < foo.bin
