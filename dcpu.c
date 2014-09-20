@@ -6,7 +6,6 @@
 
 typedef int16_t u16;
 
-u16 memory[0x10000] = { 0 };
 u16 registers[8] = { 0 };
 u16 pcounter = 0;
 u16 spointer = 0;
@@ -126,10 +125,6 @@ u16 get_instr_value(char *token, bool is_a) {
   return -1;
 }
 
-void write_word(u16 value) {
-  memory[spointer] = value;
-  spointer++;
-}
 
 void write_operand(char *token, bool is_a) {
   u16 reg_val = find_reg_num(token);
@@ -143,7 +138,7 @@ void write_operand(char *token, bool is_a) {
     if (lit >= -1 && lit <= 30 && is_a) {
       return;
     }
-    write_word(lit);
+    fwrite(&lit, 2, 1, stdout);
     return;
   }
 
@@ -152,26 +147,24 @@ void write_operand(char *token, bool is_a) {
   //register / [register + lit]
   if ((reg_val = find_reg_num(parts[0])) > -1) {
     if (parts[1] && is_literal(parts[1], &lit)) {
-      write_word(registers[reg_val] + lit); 
+      fwrite(&lit, 2, 1, stdout);
       return;
     }
-    //write_word(registers[reg_val]);
     return;
   }
 
   // SP / [SP + lit]
   if(parts[0] == "SP") {
     if (parts[1] && is_literal(parts[1], &lit)) {
-      write_word(spointer + lit);
+      fwrite(&lit, 2, 1, stdout);
       return;
     }
-    //write_word(memory[spointer]);
     return;
   }
 
   // [lit]
   if (is_literal(parts[0], &lit))
-    write_word(lit); 
+    fwrite(&lit, 2, 1, stdout);
     return;
 
   free(parts);
@@ -198,7 +191,7 @@ void assemble(char buf[]) {
   enum ops op_num = find_op_num(op);
   high_bits = get_high_bits(instr, op_num);
 
-  write_word(high_bits);
+  fwrite(&high_bits, 2, 1, stdout);
 
   char **cpy_instr = split(cpy, " ,\n");
 
@@ -210,18 +203,6 @@ void assemble(char buf[]) {
   free(cpy_instr);
 }
 
-void dump_mem() {
-  for(u16 i = 0; i < 10000; i++) {
-    if(i % 8 == 0 && i) {
-      printf("\n");
-    }
-    if (!memory[i]){
-      printf("\n");
-      return;
-    }
-    printf("%04x ", memory[i]);
-  }
-}
 
 int main() {
   char buf[256];
@@ -230,6 +211,5 @@ int main() {
       assemble(buf);
     }
   }
-  dump_mem();
   return 1;
 }
