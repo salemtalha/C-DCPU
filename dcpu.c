@@ -6,10 +6,6 @@
 
 typedef int16_t u16;
 
-u16 registers[8] = { 0 };
-u16 pcounter = 0;
-u16 spointer = 0;
-
 enum regs {
   A, B, C, X, Y, Z, I, J 
 }; 
