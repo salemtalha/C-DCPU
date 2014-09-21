@@ -33,19 +33,16 @@ void dump_mem() {
 
   printf("\n\n");
 
-  for(u16 i = 0; i <= 0xffff; i++) {
+  for(u16 i = 0; i != 0xffff; i++) {
     if(i % 8 == 0 && i) {
       printf("\n");
     }
-    if(i % 9 == 0) {
+    if(i % 8 == 0) {
       printf("%04x: ", i);
-    }
-    if (!memory[i]){
-      printf("\n");
-      return;
     }
     printf("%04x ", memory[i]);
   }
+  printf("\n");
 }
 
 
@@ -112,39 +109,68 @@ u16 *oper_values(u16 word, bool is_a) {
   }
 
   if(word >= 0x20 && word <= 0x3f && is_a) {
-    word -= 0x21;
+    u16 val = word - 0x21;
     u16 *lit = malloc(sizeof(u16));
-    lit = &word;
+    lit = &val;
     return lit;
   }
 
 }
 
+/////
+
+u16 num_skips(u16 word) {
+  return ((word >= 8 && word <= 17) || word == 0x1a || word == 0x1e || word == 0x1f);
+}
+
+u16 instr_len(u16 word) {
+  u16 b_bits = (0x03e0 & word) >> 5;
+  u16 a_bits = (0xfc00 & word) >> 10;
+
+  return num_skips(b_bits) + num_skips(a_bits) + 1;
+}
+
+void skip_instr() {
+  u16 len_this_instr = instr_len(memory[operands[PC]]);
+  u16 len_next_instr = instr_len(memory[operands[PC] + len_this_instr]);
+  operands[PC] += len_next_instr;
+}
+
+/////
+
 void process(u16 word) {
-  u16 o = (0x001f & word);
-  u16 b = (0x03e0 & word) >> 5;
-  u16 a = (0xfc00 & word) >> 10;
+  u16 o_bits = (0x001f & word);
+  u16 b_bits = (0x03e0 & word) >> 5;
+  u16 a_bits = (0xfc00 & word) >> 10;
 
-  u16 *oper1 = oper_values(b, false);
-  u16 *oper2 = oper_values(a, true);
+  u16 *b = oper_values(b_bits, false);
+  u16 *a = oper_values(a_bits, true);
 
-  switch(o) {
+  switch(o_bits) {
     case NA:
       break;
     case SET:
-      *oper1 = *oper2;
+      //TODO: really weird bug here, wtf
+      //printf("HERE: %04x %d\n", *b, *a);
+      *b = *a;
       break;
     case ADD:
-      *oper1 += *oper2;
-      if (*oper1 < *oper2)
+      *b += *a;
+      if (*b < *a)
         operands[EX] = 0x0001;
       else
         operands[EX] = 0x0000;
       break;
     case SUB:
-      *oper1 -= *oper2;
+      *b -= *a;
+      if (*b > *a)
+        operands[EX] = 0x0001;
+      else
+        operands[EX] = 0x0000;
       break;
     case MUL:
+      *b *= *a;
+      operands[EX] = ((*b * *a) >> 16) & 0xffff;
       break;
     case MLI:
       break;
@@ -153,44 +179,89 @@ void process(u16 word) {
     case DVI:
       break;
     case MOD:
+      if (*a == 0)
+        *b = 0;
+      else
+        *b %= *a;
       break;
     case MDI:
       break;
     case AND:
+      *b &= *a;
       break;
     case BOR:
+      *b |= *a;
       break;
     case XOR:
+      *b ^= *a;
       break;
     case SHR:
+      *b >>= *a;
+      operands[EX] = ((*b << 16) >> *a) && 0xffff;
       break;
     case ASR:
+      *b = (int16_t) *b >> *a;
+      operands[EX] = ((*b << 16) >> *a) && 0xffff;
       break;
     case SHL:
+      *b <<= *a;
+      operands[EX] = ((*b << *a) >> 16) && 0xffff;
       break;
     case IFB:
+      if (*a & *b == 0)
+        skip_instr();
       break;
     case IFC:
+      if (*a & *b != 0)
+        skip_instr();
       break;
     case IFE:
+      if (*a != *b)
+        skip_instr();
       break;
     case IFN:
+      if (*a == *b)
+        skip_instr();
       break;
     case IFG:
+      if (*a <= *b)
+        skip_instr();
       break;
     case IFA:
+      if ((int16_t) *a <= (int16_t)*b)
+        skip_instr();
       break;
     case IFL:
+      if (*a >= *b)
+        skip_instr();
       break;
     case IFU:
+      if ((int16_t) *a >= (int16_t)*b)
+        skip_instr();
       break;
     case ADX:
+      *b = *b + *a + operands[EX];
+      if (*b < (*a + operands[EX]))
+        operands[EX] = 0x0001;
+      else
+        operands[EX] = 0x0000; 
       break;
     case SBX:
+      *b = *b - *a + operands[EX];
+      if (*a < *b)
+        operands[EX] = 0xffff;
+      else
+        operands[EX] = 0x0000; 
       break;
     case STI:
+      *b = *a;
+      operands[I]++;
+      operands[J]++;
       break;
     case STD:
+      *b = *a;
+      operands[I]--;
+      operands[J]--;
       break;
   }
 
