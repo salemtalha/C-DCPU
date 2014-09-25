@@ -54,11 +54,13 @@ u16 *oper_values(u16 word, bool is_a) {
 
   u16 next_word;
 
-  if (word <= 0x07)
+  if (word <= 0x07) {
     return &(operands[word]);
+  }
 
-  if (word <= 0x0f)
+  if (word <= 0x0f) {
     return &(memory[operands[word - 0x08]]);
+  }
 
   if (word <= 0x17) {
     operands[PC]++;
@@ -115,6 +117,8 @@ u16 *oper_values(u16 word, bool is_a) {
     return lit;
   }
 
+  printf("Invalid instruction");
+  exit(0);
 }
 
 /////
@@ -146,12 +150,11 @@ void process(u16 word) {
   u16 *b = oper_values(b_bits, false);
   u16 *a = oper_values(a_bits, true);
 
+
   switch(o_bits) {
     case NA:
       break;
     case SET:
-      //TODO: really weird bug here, wtf
-      //printf("HERE: %04x %d\n", *b, *a);
       *b = *a;
       break;
     case ADD:
@@ -173,10 +176,26 @@ void process(u16 word) {
       operands[EX] = ((*b * *a) >> 16) & 0xffff;
       break;
     case MLI:
+      *b = (int16_t) *a * (int16_t) *b;
       break;
     case DIV:
+      if (*a == 0) {
+        *b = 0;
+        operands[EX] = 0;
+      }
+      else {
+        *b /= *a;
+        operands[EX] = ((*b << 16) / *a) & 0xffff;
+      }
       break;
     case DVI:
+      if (*a == 0) {
+        *b = 0;
+        operands[EX] = 0;
+      }
+      else {
+        *b = (int16_t) *b / (int16_t) *a;
+      }
       break;
     case MOD:
       if (*a == 0)
@@ -185,6 +204,10 @@ void process(u16 word) {
         *b %= *a;
       break;
     case MDI:
+      if (*a == 0)
+        *b = 0;
+      else
+        *b = (int16_t) *b % (int16_t) *a;
       break;
     case AND:
       *b &= *a;
