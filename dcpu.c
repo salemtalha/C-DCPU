@@ -56,24 +56,13 @@ char **split(char buf[], char *pattern) {
   return tokens;
 }
 
-bool convert_to_base(char *token, int base, u16 *literal) {
+bool is_literal(char *token, u16 *literal) {
   char *end;
-  *literal = strtol(token, &end, base);
+  *literal = strtol(token, &end, 0);
   if (!*end)
     return true;
   else
     return false;
-}
-
-bool is_literal(char *token, u16 *literal) {
-  bool can_convert_hex = convert_to_base(token, 16, literal);
-  if (can_convert_hex)
-    return true;
-  bool can_convert_dec = convert_to_base(token, 10, literal);
-  if (can_convert_dec)
-    return true;
-
-  return false;
 }
 
 
